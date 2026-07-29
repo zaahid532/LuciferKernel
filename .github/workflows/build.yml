@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Build Environment
         run: |
@@ -32,7 +32,18 @@ jobs:
       - name: Package AnyKernel3 Zip
         run: |
           git clone --depth=1 https://github.com/osm0sis/AnyKernel3.git AK3
-          cp out/arch/arm64/boot/Image.gz-dtb AK3/
+          
+          # Otomatis cari file Image/Image.gz/Image.gz-dtb yang ada di out/
+          if [ -f out/arch/arm64/boot/Image.gz-dtb ]; then
+            cp out/arch/arm64/boot/Image.gz-dtb AK3/
+          elif [ -f out/arch/arm64/boot/Image.gz ]; then
+            cp out/arch/arm64/boot/Image.gz AK3/
+          elif [ -f out/arch/arm64/boot/Image ]; then
+            cp out/arch/arm64/boot/Image AK3/
+          else
+            echo "Kernel Image not found!" && exit 1
+          fi
+
           cd AK3
           zip -r9 ../Tissot-Kernel-Custom.zip * -x .git README.md
 
