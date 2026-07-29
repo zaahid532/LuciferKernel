@@ -1,0 +1,43 @@
+name: Compile Tissot Kernel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential bc bison flex libssl-dev libncurses5-dev clang lld git zip
+
+      - name: Clone Toolchain (Clang)
+        run: |
+          git clone --depth=1 https://github.com/kdrag0n/proton-clang.git clang
+
+      - name: Build Kernel
+        run: |
+          export PATH="$(pwd)/clang/bin:$PATH"
+          export ARCH=arm64
+          export SUBARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          
+          make O=out tissot_defconfig
+          make -j$(nproc) O=out
+
+      - name: Package AnyKernel3 Zip
+        run: |
+          git clone --depth=1 https://github.com/osm0sis/AnyKernel3.git AK3
+          cp out/arch/arm64/boot/Image.gz-dtb AK3/
+          cd AK3
+          zip -r9 ../Tissot-Kernel-Custom.zip * -x .git README.md
+
+      - name: Upload Kernel Zip
+        uses: actions/upload-artifact@v3
+        with:
+          name: Tissot-Kernel-Zip
+          path: Tissot-Kernel-Custom.zip
